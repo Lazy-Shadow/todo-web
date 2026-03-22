@@ -1,0 +1,37 @@
+<aside class="w-64 bg-white border-r border-gray-200 flex flex-col">
+  <div class="p-4 border-b border-gray-200">
+    <h1 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+      <i class="fas fa-check-circle text-purple-600"></i>
+      Todo App
+    </h1>
+  </div>
+  
+  <nav class="flex-1 p-2">
+    <button class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left mb-1 text-purple-600 bg-purple-50" data-tab="todos">
+      <i class="fas fa-list-check w-5"></i>
+      <span>Todos</span>
+    </button>
+    <button class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left mb-1 text-gray-600 hover:bg-gray-50" data-tab="notes">
+      <i class="fas fa-sticky-note w-5"></i>
+      <span>Notes</span>
+    </button>
+  </nav>
+
+  <div id="stats-panel" class="p-4 border-t border-gray-200">
+    <h3 class="text-sm font-semibold text-gray-500 mb-3">Overview</h3>
+    <div class="space-y-2">
+      <div class="flex justify-between items-center">
+        <span class="text-sm text-gray-600">Total</span>
+        <span class="font-bold text-blue-600" id="total-count">0</span>
+      </div>
+      <div class="flex justify-between items-center">
+        <span class="text-sm text-gray-600">Active</span>
+        <span class="font-bold text-orange-600" id="active-count">0</span>
+      </div>
+      <div class="flex justify-between items-center">
+        <span class="text-sm text-gray-600">Completed</span>
+        <span class="font-bold text-green-600" id="done-count">0</span>
+      </div>
+    </div>
+  </div>
+</aside>
