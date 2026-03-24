@@ -653,9 +653,26 @@ function switchTab(tab) {
     btn.classList.toggle('hover:bg-gray-50', !isActive);
   });
 
-  document.getElementById('page-title').textContent = tab === 'todos' ? 'Todos' : 'Notes';
-  document.getElementById('filter-container').classList.toggle('hidden', tab === 'notes');
-  document.getElementById('stats-panel').classList.toggle('hidden', tab === 'notes');
+  const titles = {
+    'todos': 'Todos',
+    'notes': 'Notes',
+    'weather': 'Weather',
+    'maps': 'Maps'
+  };
+  document.getElementById('page-title').textContent = titles[tab];
+  
+  // Hide/Show elements based on tab
+  document.getElementById('filter-container').classList.toggle('hidden', tab !== 'todos');
+  document.getElementById('stats-panel').classList.toggle('hidden', tab !== 'todos');
+  document.getElementById('search-bar-container').classList.toggle('hidden', tab === 'weather' || tab === 'maps');
+  document.getElementById('fab').classList.toggle('hidden', tab === 'weather' || tab === 'maps');
+
+  // Hide all panels
+  document.getElementById('todos-panel').classList.add('hidden');
+  document.getElementById('notes-panel').classList.add('hidden');
+  document.getElementById('weather-panel').classList.add('hidden');
+  document.getElementById('maps-panel').classList.add('hidden');
+  hideEmptyState();
 
   searchQuery = '';
   document.getElementById('search-input').value = '';
@@ -663,9 +680,12 @@ function switchTab(tab) {
 
   if (tab === 'todos') {
     renderTasks();
-    renderStats();
-  } else {
+  } else if (tab === 'notes') {
     renderNotes();
+  } else if (tab === 'weather') {
+    document.getElementById('weather-panel').classList.remove('hidden');
+  } else if (tab === 'maps') {
+    document.getElementById('maps-panel').classList.remove('hidden');
   }
 }
 
@@ -826,6 +846,10 @@ function setupEventListeners() {
       closeNoteModal();
     }
   });
+
+  document.getElementById('locate-me-btn').addEventListener('click', () => {
+    initWeatherAndMap();
+  });
 }
 
 function init() {
@@ -835,6 +859,93 @@ function init() {
   renderTasks();
   renderStats();
   renderNotes();
+  initWeatherAndMap();
+}
+
+async function initWeatherAndMap() {
+  if ("geolocation" in navigator) {
+    // Show loading state for map
+    const mapContainer = document.getElementById('map-large');
+    mapContainer.innerHTML = `
+      <div class="h-full w-full flex items-center justify-center text-gray-400">
+        <div class="text-center">
+          <i class="fas fa-spinner fa-spin text-4xl mb-4 text-purple-600"></i>
+          <p>Locating you...</p>
+        </div>
+      </div>
+    `;
+
+    navigator.geolocation.getCurrentPosition(async (position) => {
+      const { latitude, longitude } = position.coords;
+      
+      // Update Weather
+      fetchWeather(latitude, longitude);
+      
+      // Update Map (hl=en for English)
+      mapContainer.innerHTML = `
+        <iframe 
+          width="100%" 
+          height="100%" 
+          frameborder="0" 
+          scrolling="no" 
+          marginheight="0" 
+          marginwidth="0" 
+          src="https://maps.google.com/maps?q=${latitude},${longitude}&hl=en&z=15&amp;output=embed"
+        ></iframe>
+      `;
+    }, (error) => {
+      console.error("Geolocation error:", error);
+      document.getElementById('weather-location-large').textContent = "Location access denied";
+      mapContainer.innerHTML = `
+        <div class="h-full w-full flex items-center justify-center text-gray-400 text-center p-8">
+          <div>
+            <i class="fas fa-location-slash text-5xl mb-4"></i>
+            <p>Enable location access to see your local map and weather.</p>
+          </div>
+        </div>
+      `;
+    });
+  } else {
+    document.getElementById('weather-location-large').textContent = "Geolocation not supported";
+  }
+}
+
+async function fetchWeather(lat, lon) {
+  try {
+    const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+    const data = await response.json();
+    
+    if (data.current_weather) {
+      const temp = Math.round(data.current_weather.temperature);
+      const code = data.current_weather.weathercode;
+      
+      const weatherInfo = getWeatherInfo(code);
+      
+      // Update Large Weather Panel
+      document.getElementById('weather-temp-large').textContent = `${temp}°C`;
+      document.getElementById('weather-location-large').innerHTML = `
+        <i class="fas fa-location-dot"></i>
+        <span>Your Location (${lat.toFixed(2)}, ${lon.toFixed(2)})</span>
+      `;
+      document.getElementById('weather-desc-large').textContent = weatherInfo.desc;
+      document.getElementById('weather-icon-large').className = `fas ${weatherInfo.icon} text-8xl ${weatherInfo.color}`;
+    }
+  } catch (error) {
+    console.error("Weather fetch error:", error);
+    document.getElementById('weather-desc-large').textContent = "Failed to load weather";
+  }
+}
+
+function getWeatherInfo(code) {
+  // Simple mapping of WMO Weather interpretation codes
+  if (code === 0) return { desc: "Clear sky", icon: "fa-sun", color: "text-yellow-500" };
+  if (code <= 3) return { desc: "Partly cloudy", icon: "fa-cloud-sun", color: "text-blue-400" };
+  if (code <= 48) return { desc: "Foggy", icon: "fa-smog", color: "text-gray-400" };
+  if (code <= 67) return { desc: "Rainy", icon: "fa-cloud-showers-heavy", color: "text-blue-600" };
+  if (code <= 77) return { desc: "Snowy", icon: "fa-snowflake", color: "text-blue-200" };
+  if (code <= 82) return { desc: "Rain showers", icon: "fa-cloud-rain", color: "text-blue-500" };
+  if (code <= 99) return { desc: "Thunderstorm", icon: "fa-bolt", color: "text-purple-600" };
+  return { desc: "Cloudy", icon: "fa-cloud", color: "text-gray-500" };
 }
 
 init();
