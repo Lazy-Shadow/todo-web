@@ -14,7 +14,7 @@
 </head>
 <body class="bg-gray-100 min-h-screen">
   <div id="app" class="flex h-screen">
-    <aside class="w-64 bg-white border-r border-gray-200 flex flex-col">
+    <aside class="w-64 bg-white border-r border-gray-200 flex flex-col relative z-20">
       <div class="p-4 border-b border-gray-200">
         <h1 class="text-xl font-bold text-gray-800 flex items-center gap-2">
           <i class="fas fa-check-circle text-purple-600"></i>
@@ -105,29 +105,72 @@
         </div>
         
         <!-- Weather Panel -->
-        <div id="weather-panel" class="hidden max-w-4xl mx-auto">
-          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
-            <div id="weather-content" class="space-y-6">
-              <div class="flex flex-col items-center gap-4">
-                <i id="weather-icon-large" class="fas fa-cloud-sun text-8xl text-blue-500"></i>
-                <h3 id="weather-temp-large" class="text-6xl font-bold text-gray-800">--°C</h3>
-                <p id="weather-desc-large" class="text-2xl text-gray-500 capitalize">Loading weather...</p>
-              </div>
-              <div class="pt-6 border-t border-gray-100">
-                <p id="weather-location-large" class="text-gray-400 flex items-center justify-center gap-2">
+        <div id="weather-panel" class="hidden max-w-5xl mx-auto space-y-6">
+          <!-- Current Weather Card -->
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+            <div id="weather-content" class="flex flex-col md:flex-row items-center justify-between gap-8">
+              <div class="flex flex-col items-center md:items-start gap-4">
+                <p id="weather-location-large" class="text-gray-400 flex items-center gap-2 text-lg">
                   <i class="fas fa-location-dot"></i>
                   <span>Detecting location...</span>
                 </p>
+                <div class="flex items-center gap-6">
+                  <i id="weather-icon-large" class="fas fa-cloud-sun text-8xl text-blue-500"></i>
+                  <div>
+                    <h3 id="weather-temp-large" class="text-7xl font-bold text-gray-800">--°C</h3>
+                    <p id="weather-desc-large" class="text-2xl text-gray-500 capitalize">Loading...</p>
+                  </div>
+                </div>
               </div>
+
+              <!-- Weather Details Grid -->
+              <div class="grid grid-cols-2 gap-4 w-full md:w-auto">
+                <div class="bg-blue-50/50 p-4 rounded-xl flex items-center gap-3">
+                  <i class="fas fa-droplet text-blue-500 text-xl w-6 text-center"></i>
+                  <div>
+                    <p class="text-xs text-gray-400 uppercase font-semibold">Humidity</p>
+                    <p id="weather-humidity" class="text-lg font-bold text-gray-700">--%</p>
+                  </div>
+                </div>
+                <div class="bg-orange-50/50 p-4 rounded-xl flex items-center gap-3">
+                  <i class="fas fa-wind text-orange-500 text-xl w-6 text-center"></i>
+                  <div>
+                    <p class="text-xs text-gray-400 uppercase font-semibold">Wind Speed</p>
+                    <p id="weather-wind" class="text-lg font-bold text-gray-700">-- km/h</p>
+                  </div>
+                </div>
+                <div class="bg-purple-50/50 p-4 rounded-xl flex items-center gap-3">
+                  <i class="fas fa-sun text-purple-500 text-xl w-6 text-center"></i>
+                  <div>
+                    <p class="text-xs text-gray-400 uppercase font-semibold">UV Index</p>
+                    <p id="weather-uv" class="text-lg font-bold text-gray-700">--</p>
+                  </div>
+                </div>
+                <div class="bg-red-50/50 p-4 rounded-xl flex items-center gap-3">
+                  <i class="fas fa-cloud-rain text-red-500 text-xl w-6 text-center"></i>
+                  <div>
+                    <p class="text-xs text-gray-400 uppercase font-semibold">Precipitation</p>
+                    <p id="weather-precip" class="text-lg font-bold text-gray-700">--%</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Forecast Section -->
+          <div class="space-y-4">
+            <h3 class="text-xl font-bold text-gray-800 px-2">7-Day Forecast</h3>
+            <div id="forecast-container" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+              <!-- Forecast items will be injected here -->
             </div>
           </div>
         </div>
 
         <!-- Maps Panel -->
         <div id="maps-panel" class="hidden h-full flex flex-col gap-4">
-          <div class="flex items-center justify-between">
+          <div class="flex flex-col md:flex-row items-center justify-between gap-4">
             <h3 class="text-lg font-semibold text-gray-700">Explore Your Area</h3>
-            <button id="locate-me-btn" class="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition shadow-sm">
+            <button id="locate-me-btn" class="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition shadow-sm whitespace-nowrap">
               <i class="fas fa-location-crosshairs"></i>
               <span>Locate Me</span>
             </button>

@@ -690,11 +690,16 @@ function switchTab(tab) {
 }
 
 function setupEventListeners() {
+  const addListener = (id, event, callback) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener(event, callback);
+  };
+
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 
-  document.getElementById('fab').addEventListener('click', () => {
+  addListener('fab', 'click', () => {
     if (currentTab === 'todos') {
       openTaskModal();
     } else {
@@ -702,21 +707,24 @@ function setupEventListeners() {
     }
   });
 
-  document.getElementById('filter-btn').addEventListener('click', () => {
-    document.getElementById('filter-menu').classList.toggle('hidden');
+  addListener('filter-btn', 'click', () => {
+    const menu = document.getElementById('filter-menu');
+    if (menu) menu.classList.toggle('hidden');
   });
 
   document.querySelectorAll('.filter-option').forEach(btn => {
     btn.addEventListener('click', () => {
       filter = btn.dataset.filter;
-      document.getElementById('filter-menu').classList.add('hidden');
+      const menu = document.getElementById('filter-menu');
+      if (menu) menu.classList.add('hidden');
       renderTasks();
     });
   });
 
-  document.getElementById('search-input').addEventListener('input', (e) => {
+  addListener('search-input', 'input', (e) => {
     searchQuery = e.target.value;
-    document.getElementById('clear-search').classList.toggle('hidden', !searchQuery);
+    const clearBtn = document.getElementById('clear-search');
+    if (clearBtn) clearBtn.classList.toggle('hidden', !searchQuery);
     if (currentTab === 'todos') {
       renderTasks();
     } else {
@@ -724,10 +732,12 @@ function setupEventListeners() {
     }
   });
 
-  document.getElementById('clear-search').addEventListener('click', () => {
+  addListener('clear-search', 'click', () => {
     searchQuery = '';
-    document.getElementById('search-input').value = '';
-    document.getElementById('clear-search').classList.add('hidden');
+    const input = document.getElementById('search-input');
+    if (input) input.value = '';
+    const clearBtn = document.getElementById('clear-search');
+    if (clearBtn) clearBtn.classList.add('hidden');
     if (currentTab === 'todos') {
       renderTasks();
     } else {
@@ -735,12 +745,12 @@ function setupEventListeners() {
     }
   });
 
-  document.getElementById('close-task-modal').addEventListener('click', closeTaskModal);
-  document.getElementById('task-modal').addEventListener('click', (e) => {
+  addListener('close-task-modal', 'click', closeTaskModal);
+  addListener('task-modal', 'click', (e) => {
     if (e.target.id === 'task-modal') closeTaskModal();
   });
 
-  document.getElementById('save-task').addEventListener('click', saveTask);
+  addListener('save-task', 'click', saveTask);
 
   document.querySelectorAll('.priority-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -753,29 +763,31 @@ function setupEventListeners() {
     });
   });
 
-  document.getElementById('clear-date').addEventListener('click', () => {
+  addListener('clear-date', 'click', () => {
     selectedDueDate = null;
     selectedTime = null;
-    document.getElementById('task-time').value = '';
-    document.getElementById('date-picker-display').textContent = 'No date';
+    const timeInput = document.getElementById('task-time');
+    if (timeInput) timeInput.value = '';
+    const display = document.getElementById('date-picker-display');
+    if (display) display.textContent = 'No date';
     renderCalendar();
   });
 
-  document.getElementById('date-picker-trigger').addEventListener('click', (e) => {
+  addListener('date-picker-trigger', 'click', (e) => {
     e.stopPropagation();
     toggleDatePicker(true);
   });
 
-  document.getElementById('close-date-picker').addEventListener('click', () => {
+  addListener('close-date-picker', 'click', () => {
     toggleDatePicker(false);
   });
 
-  document.getElementById('prev-month').addEventListener('click', () => {
+  addListener('prev-month', 'click', () => {
     datePickerViewDate.setMonth(datePickerViewDate.getMonth() - 1);
     renderCalendar();
   });
 
-  document.getElementById('next-month').addEventListener('click', () => {
+  addListener('next-month', 'click', () => {
     datePickerViewDate.setMonth(datePickerViewDate.getMonth() + 1);
     renderCalendar();
   });
@@ -788,55 +800,62 @@ function setupEventListeners() {
       date.setHours(12, 0, 0, 0);
       selectedDueDate = date;
       selectedTime = selectedTime || '12:00';
-      document.getElementById('task-time').value = selectedTime;
-      document.getElementById('date-picker-display').textContent = formatDateDisplay(selectedDueDate, selectedTime);
+      const timeInput = document.getElementById('task-time');
+      if (timeInput) timeInput.value = selectedTime;
+      const display = document.getElementById('date-picker-display');
+      if (display) display.textContent = formatDateDisplay(selectedDueDate, selectedTime);
       toggleDatePicker(false);
     });
   });
 
-  document.getElementById('task-time').addEventListener('input', (e) => {
+  addListener('task-time', 'input', (e) => {
     selectedTime = e.target.value || null;
-    document.getElementById('date-picker-display').textContent = formatDateDisplay(selectedDueDate, selectedTime);
+    const display = document.getElementById('date-picker-display');
+    if (display) display.textContent = formatDateDisplay(selectedDueDate, selectedTime);
   });
 
-  document.getElementById('clear-time').addEventListener('click', () => {
+  addListener('clear-time', 'click', () => {
     selectedTime = null;
-    document.getElementById('task-time').value = '';
-    document.getElementById('date-picker-display').textContent = formatDateDisplay(selectedDueDate, selectedTime);
+    const timeInput = document.getElementById('task-time');
+    if (timeInput) timeInput.value = '';
+    const display = document.getElementById('date-picker-display');
+    if (display) display.textContent = formatDateDisplay(selectedDueDate, selectedTime);
   });
 
   document.addEventListener('click', (e) => {
     const picker = document.getElementById('date-picker');
     const trigger = document.getElementById('date-picker-trigger');
-    if (!picker.classList.contains('hidden') && !picker.contains(e.target) && !trigger.contains(e.target)) {
+    if (picker && !picker.classList.contains('hidden') && !picker.contains(e.target) && trigger && !trigger.contains(e.target)) {
       picker.classList.add('hidden');
     }
   });
 
-  document.getElementById('close-note-modal').addEventListener('click', closeNoteModal);
-  document.getElementById('note-modal').addEventListener('click', (e) => {
+  addListener('close-note-modal', 'click', closeNoteModal);
+  addListener('note-modal', 'click', (e) => {
     if (e.target.id === 'note-modal') closeNoteModal();
   });
 
-  document.getElementById('note-pin-btn').addEventListener('click', () => {
+  addListener('note-pin-btn', 'click', () => {
     if (editingNote) {
       toggleNotePin(editingNote.id);
       closeNoteModal();
     }
   });
 
-  document.getElementById('note-delete-btn').addEventListener('click', () => {
+  addListener('note-delete-btn', 'click', () => {
     if (editingNote) {
       deleteNote(editingNote.id);
       closeNoteModal();
     }
   });
 
-  document.getElementById('save-note').addEventListener('click', saveNote);
+  addListener('save-note', 'click', saveNote);
 
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('#filter-btn') && !e.target.closest('#filter-menu')) {
-      document.getElementById('filter-menu').classList.add('hidden');
+    const btn = document.getElementById('filter-btn');
+    const menu = document.getElementById('filter-menu');
+    if (btn && menu && !e.target.closest('#filter-btn') && !e.target.closest('#filter-menu')) {
+      menu.classList.add('hidden');
     }
   });
 
@@ -847,9 +866,31 @@ function setupEventListeners() {
     }
   });
 
-  document.getElementById('locate-me-btn').addEventListener('click', () => {
+  addListener('locate-me-btn', 'click', () => {
     initWeatherAndMap();
   });
+}
+
+function updateAllLocationPanels(lat, lon, locationName) {
+  fetchWeather(lat, lon, locationName);
+  updateMapWithCoords(lat, lon);
+}
+
+function updateMapWithCoords(lat, lon) {
+  const mapContainer = document.getElementById('map-large');
+  if (!mapContainer) return;
+  
+  mapContainer.innerHTML = `
+    <iframe 
+      width="100%" 
+      height="100%" 
+      frameborder="0" 
+      scrolling="no" 
+      marginheight="0" 
+      marginwidth="0" 
+      src="https://maps.google.com/maps?q=${lat},${lon}&hl=en&z=15&amp;output=embed"
+    ></iframe>
+  `;
 }
 
 function init() {
@@ -877,22 +918,7 @@ async function initWeatherAndMap() {
 
     navigator.geolocation.getCurrentPosition(async (position) => {
       const { latitude, longitude } = position.coords;
-      
-      // Update Weather
-      fetchWeather(latitude, longitude);
-      
-      // Update Map (hl=en for English)
-      mapContainer.innerHTML = `
-        <iframe 
-          width="100%" 
-          height="100%" 
-          frameborder="0" 
-          scrolling="no" 
-          marginheight="0" 
-          marginwidth="0" 
-          src="https://maps.google.com/maps?q=${latitude},${longitude}&hl=en&z=15&amp;output=embed"
-        ></iframe>
-      `;
+      updateAllLocationPanels(latitude, longitude, "Your Location");
     }, (error) => {
       console.error("Geolocation error:", error);
       document.getElementById('weather-location-large').textContent = "Location access denied";
@@ -900,7 +926,7 @@ async function initWeatherAndMap() {
         <div class="h-full w-full flex items-center justify-center text-gray-400 text-center p-8">
           <div>
             <i class="fas fa-location-slash text-5xl mb-4"></i>
-            <p>Enable location access to see your local map and weather.</p>
+            <p>Enable location access to see maps and weather.</p>
           </div>
         </div>
       `;
@@ -910,30 +936,69 @@ async function initWeatherAndMap() {
   }
 }
 
-async function fetchWeather(lat, lon) {
+async function fetchWeather(lat, lon, locationName = "Your Location") {
   try {
-    const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+    // Request current weather + daily forecast + additional metrics
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=relativehumidity_2m,precipitation_probability,uv_index&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`;
+    const response = await fetch(url);
     const data = await response.json();
     
     if (data.current_weather) {
-      const temp = Math.round(data.current_weather.temperature);
-      const code = data.current_weather.weathercode;
+      const current = data.current_weather;
+      const weatherInfo = getWeatherInfo(current.weathercode);
       
-      const weatherInfo = getWeatherInfo(code);
-      
-      // Update Large Weather Panel
-      document.getElementById('weather-temp-large').textContent = `${temp}°C`;
-      document.getElementById('weather-location-large').innerHTML = `
-        <i class="fas fa-location-dot"></i>
-        <span>Your Location (${lat.toFixed(2)}, ${lon.toFixed(2)})</span>
-      `;
+      // Update Current Weather Card
+      document.getElementById('weather-temp-large').textContent = `${Math.round(current.temperature)}°C`;
       document.getElementById('weather-desc-large').textContent = weatherInfo.desc;
       document.getElementById('weather-icon-large').className = `fas ${weatherInfo.icon} text-8xl ${weatherInfo.color}`;
+      document.getElementById('weather-location-large').innerHTML = `
+        <i class="fas fa-location-dot"></i>
+        <span>${locationName}</span>
+      `;
+
+      // Update Details Grid
+      // Find current hour index to get hourly data
+      const now = new Date();
+      const currentHourStr = now.toISOString().slice(0, 13) + ':00';
+      const hourIndex = data.hourly.time.findIndex(t => t.startsWith(currentHourStr)) || 0;
+
+      document.getElementById('weather-humidity').textContent = `${data.hourly.relativehumidity_2m[hourIndex]}%`;
+      document.getElementById('weather-wind').textContent = `${Math.round(current.windspeed)} km/h`;
+      document.getElementById('weather-uv').textContent = data.hourly.uv_index[hourIndex].toFixed(1);
+      document.getElementById('weather-precip').textContent = `${data.hourly.precipitation_probability[hourIndex]}%`;
+
+      // Render 7-Day Forecast
+      renderForecast(data.daily);
     }
   } catch (error) {
     console.error("Weather fetch error:", error);
     document.getElementById('weather-desc-large').textContent = "Failed to load weather";
   }
+}
+
+function renderForecast(daily) {
+  const container = document.getElementById('forecast-container');
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  
+  container.innerHTML = daily.time.map((time, i) => {
+    const date = new Date(time);
+    const dayName = i === 0 ? 'Today' : days[date.getDay()];
+    const info = getWeatherInfo(daily.weathercode[i]);
+    const maxTemp = Math.round(daily.temperature_2m_max[i]);
+    const minTemp = Math.round(daily.temperature_2m_min[i]);
+
+    return `
+      <div class="bg-white p-4 rounded-2xl border border-gray-100 flex flex-col items-center gap-3 shadow-sm hover:shadow-md transition">
+        <p class="text-sm font-bold text-gray-500">${dayName}</p>
+        <i class="fas ${info.icon} text-3xl ${info.color}"></i>
+        <div class="text-center">
+          <p class="text-lg font-bold text-gray-800">${maxTemp}°</p>
+          <p class="text-xs text-gray-400">${minTemp}°</p>
+        </div>
+        <p class="text-[10px] text-gray-400 font-medium uppercase text-center">${info.desc}</p>
+      </div>
+    `;
+  }).join('');
 }
 
 function getWeatherInfo(code) {

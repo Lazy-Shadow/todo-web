@@ -16,7 +16,8 @@
   "type": "commonjs",
   "dependencies": {
     "cors": "^2.8.6",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "tailwind": "^4.0.0"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.27",
