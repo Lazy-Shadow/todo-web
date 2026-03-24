@@ -170,11 +170,31 @@
         <div id="maps-panel" class="hidden h-full flex flex-col gap-4">
           <div class="flex flex-col md:flex-row items-center justify-between gap-4">
             <h3 class="text-lg font-semibold text-gray-700">Explore Your Area</h3>
-            <button id="locate-me-btn" class="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition shadow-sm whitespace-nowrap">
-              <i class="fas fa-location-crosshairs"></i>
+            
+            <div class="flex-1 flex gap-2 w-full md:max-w-xl">
+              <div class="relative flex-1 group">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input type="text" id="map-search-input" placeholder="Search for a city, street, or landmark..." 
+                  class="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm transition">
+                <button id="map-clear-btn" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  <i class="fas fa-times-circle"></i>
+                </button>
+                <!-- Suggestions dropdown -->
+                <div id="map-suggestions" class="hidden absolute left-0 right-0 top-full mt-2 bg-white rounded-xl shadow-xl border border-gray-100 z-[100] max-h-60 overflow-y-auto">
+                  <!-- Suggestions will be injected here -->
+                </div>
+              </div>
+              <button id="map-search-btn" class="px-6 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition shadow-md font-medium">
+                Search
+              </button>
+            </div>
+
+            <button id="locate-me-btn" class="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition shadow-sm whitespace-nowrap font-medium">
+              <i class="fas fa-location-crosshairs text-purple-600"></i>
               <span>Locate Me</span>
             </button>
           </div>
+          
           <div id="map-large" class="flex-1 rounded-2xl bg-white border border-gray-200 overflow-hidden shadow-sm min-h-[400px]">
             <div class="h-full w-full flex items-center justify-center text-gray-400">
               <div class="text-center">

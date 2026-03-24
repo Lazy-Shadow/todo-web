@@ -869,6 +869,135 @@ function setupEventListeners() {
   addListener('locate-me-btn', 'click', () => {
     initWeatherAndMap();
   });
+
+  // Map Search Functionality
+  const mapInput = document.getElementById('map-search-input');
+  const mapSearchBtn = document.getElementById('map-search-btn');
+  const mapClearBtn = document.getElementById('map-clear-btn');
+  const mapSuggestions = document.getElementById('map-suggestions');
+
+  if (mapInput) {
+    mapInput.addEventListener('input', debounce(async (e) => {
+      const query = e.target.value.trim();
+      mapClearBtn.classList.toggle('hidden', !query);
+      
+      if (query.length > 2) {
+        fetchSuggestions(query);
+      } else {
+        mapSuggestions.classList.add('hidden');
+      }
+    }, 300));
+
+    mapInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') handleMapSearch(mapInput.value.trim());
+    });
+  }
+
+  addListener('map-search-btn', 'click', () => {
+    handleMapSearch(mapInput.value.trim());
+  });
+
+  addListener('map-clear-btn', 'click', () => {
+    mapInput.value = '';
+    mapClearBtn.classList.add('hidden');
+    mapSuggestions.classList.add('hidden');
+    mapInput.focus();
+  });
+
+  // Close suggestions on click outside
+  document.addEventListener('click', (e) => {
+    if (mapSuggestions && !mapSuggestions.contains(e.target) && e.target !== mapInput) {
+      mapSuggestions.classList.add('hidden');
+    }
+  });
+}
+
+// Debounce helper
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+async function fetchSuggestions(query) {
+  try {
+    const response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`);
+    const data = await response.json();
+    const suggestions = document.getElementById('map-suggestions');
+    
+    if (data.results && data.results.length > 0) {
+      suggestions.innerHTML = data.results.map(res => `
+        <button class="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 border-b border-gray-50 last:border-0 transition" 
+                onclick="selectSuggestion('${res.name}', ${res.latitude}, ${res.longitude}, '${res.admin1 || ''}', '${res.country}')">
+          <i class="fas fa-map-marker-alt text-gray-400"></i>
+          <div>
+            <p class="text-sm font-semibold text-gray-800">${res.name}</p>
+            <p class="text-xs text-gray-400">${res.admin1 ? res.admin1 + ', ' : ''}${res.country}</p>
+          </div>
+        </button>
+      `).join('');
+      suggestions.classList.remove('hidden');
+    } else {
+      suggestions.classList.add('hidden');
+    }
+  } catch (error) {
+    console.error("Suggestions error:", error);
+  }
+}
+
+// Exposed to global scope for onclick handler
+window.selectSuggestion = (name, lat, lon, admin, country) => {
+  const fullLocation = admin ? `${name}, ${admin}, ${country}` : `${name}, ${country}`;
+  const input = document.getElementById('map-search-input');
+  if (input) input.value = fullLocation;
+  document.getElementById('map-suggestions').classList.add('hidden');
+  updateAllLocationPanels(lat, lon, fullLocation);
+  showToast(`Navigated to ${fullLocation}`);
+};
+
+async function handleMapSearch(query) {
+  if (!query) return;
+  
+  // Update map immediately with the query string (best for landmarks/addresses)
+  updateMapWithQuery(query);
+  
+  // Also try to geocode it to update the weather panel
+  try {
+    const response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`);
+    const data = await response.json();
+    
+    if (data.results && data.results.length > 0) {
+      const { latitude, longitude, name, country, admin1 } = data.results[0];
+      const locationName = admin1 ? `${name}, ${admin1}, ${country}` : `${name}, ${country}`;
+      fetchWeather(latitude, longitude, locationName);
+      showToast(`Showing ${locationName}`);
+    }
+  } catch (error) {
+    console.error("Search error:", error);
+  }
+}
+
+function updateMapWithQuery(query) {
+  const mapContainer = document.getElementById('map-large');
+  if (!mapContainer) return;
+  
+  mapContainer.innerHTML = `
+    <iframe 
+      width="100%" 
+      height="100%" 
+      frameborder="0" 
+      scrolling="no" 
+      marginheight="0" 
+      marginwidth="0" 
+      src="https://maps.google.com/maps?q=${encodeURIComponent(query)}&hl=en&z=15&amp;output=embed"
+    ></iframe>
+  `;
 }
 
 function updateAllLocationPanels(lat, lon, locationName) {
@@ -918,7 +1047,22 @@ async function initWeatherAndMap() {
 
     navigator.geolocation.getCurrentPosition(async (position) => {
       const { latitude, longitude } = position.coords;
-      updateAllLocationPanels(latitude, longitude, "Your Location");
+      
+      let locationName = "Your Location";
+      try {
+        // Reverse Geocoding to get the actual city name
+        const response = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`);
+        const data = await response.json();
+        if (data.city || data.locality) {
+          locationName = data.city || data.locality;
+          if (data.principalSubdivision) locationName += `, ${data.principalSubdivision}`;
+          if (data.countryName) locationName += `, ${data.countryName}`;
+        }
+      } catch (e) {
+        console.error("Reverse geocoding failed:", e);
+      }
+
+      updateAllLocationPanels(latitude, longitude, locationName);
     }, (error) => {
       console.error("Geolocation error:", error);
       document.getElementById('weather-location-large').textContent = "Location access denied";
