@@ -22,7 +22,12 @@
         </h1>
       </div>
       
+      <!-- sidebar -->
       <nav class="flex-1 p-2">
+        <button class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left mb-1 text-gray-600 hover:bg-gray-50" data-tab="dashboard">
+          <i class="fas fa-th-large w-5"></i>
+          <span>Dashboard</span>
+        </button>
         <button class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left mb-1 text-purple-600 bg-purple-50" data-tab="todos">
           <i class="fas fa-list-check w-5"></i>
           <span>Todos</span>
@@ -30,6 +35,10 @@
         <button class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left mb-1 text-gray-600 hover:bg-gray-50" data-tab="notes">
           <i class="fas fa-sticky-note w-5"></i>
           <span>Notes</span>
+        </button>
+        <button class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left mb-1 text-gray-600 hover:bg-gray-50" data-tab="activity">
+          <i class="fas fa-history w-5"></i>
+          <span>Activity</span>
         </button>
         <button class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left mb-1 text-gray-600 hover:bg-gray-50" data-tab="weather">
           <i class="fas fa-cloud-sun w-5"></i>
@@ -99,6 +108,84 @@
       </div>
 
       <div class="flex-1 overflow-y-auto p-6">
+        <!-- Dashboard Panel -->
+        <div id="dashboard-panel" class="hidden space-y-6 max-w-6xl mx-auto">
+          <!-- Weather & Location Card -->
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+              <div class="flex items-center gap-4">
+                <i id="weather-icon-dashboard" class="fas fa-sun text-5xl text-yellow-500"></i>
+                <div>
+                  <p id="weather-temp-dashboard" class="text-4xl font-bold text-gray-800">--°C</p>
+                  <p id="weather-desc-dashboard" class="text-lg text-gray-500 capitalize">Loading...</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 text-gray-600">
+                <i class="fas fa-map-marker-alt text-purple-500"></i>
+                <span id="weather-location-dashboard" class="font-medium">Detecting location...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Task Stats Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-lg">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-blue-100 text-sm font-medium">Total Tasks</p>
+                  <p id="dash-total" class="text-4xl font-bold mt-1">0</p>
+                </div>
+                <i class="fas fa-tasks text-4xl text-blue-300"></i>
+              </div>
+            </div>
+            <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 text-white shadow-lg">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-orange-100 text-sm font-medium">Unfinished</p>
+                  <p id="dash-unfinished" class="text-4xl font-bold mt-1">0</p>
+                </div>
+                <i class="fas fa-clock text-4xl text-orange-300"></i>
+              </div>
+            </div>
+            <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white shadow-lg">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-green-100 text-sm font-medium">Finished</p>
+                  <p id="dash-finished" class="text-4xl font-bold mt-1">0</p>
+                </div>
+                <i class="fas fa-check-circle text-4xl text-green-300"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notes Count -->
+          <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-purple-100 text-sm font-medium">Total Notes</p>
+                <p id="dash-notes" class="text-4xl font-bold mt-1">0</p>
+              </div>
+              <i class="fas fa-sticky-note text-4xl text-purple-300"></i>
+            </div>
+          </div>
+
+          <!-- Recent Tasks -->
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Recent Tasks</h3>
+            <div id="dash-recent-tasks" class="space-y-3">
+              <p class="text-gray-400 text-center py-4">No tasks yet</p>
+            </div>
+          </div>
+
+          <!-- Recent Notes -->
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Recent Notes</h3>
+            <div id="dash-recent-notes" class="space-y-3">
+              <p class="text-gray-400 text-center py-4">No notes yet</p>
+            </div>
+          </div>
+        </div>
+
         <div id="todos-panel" class="space-y-3 max-w-4xl">
         </div>
         <div id="notes-panel" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -202,6 +289,12 @@
                 <p>Detecting your location to show map...</p>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- Activity Panel -->
+        <div id="activity-panel" class="hidden max-w-4xl">
+          <div id="activity-list" class="space-y-3">
           </div>
         </div>
 
@@ -355,6 +448,21 @@
   <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg hidden z-50 flex items-center gap-3">
     <span id="toast-message"></span>
     <button id="toast-undo" class="text-purple-400 hover:text-purple-300 font-medium hidden">Undo</button>
+  </div>
+
+  <div id="activity-modal" class="hidden fixed inset-0 bg-black/50 modal-overlay z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl">
+      <div class="px-6 py-5 border-b border-gray-100">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-bold text-gray-800">Activity Details</h2>
+          <button id="close-activity-modal" class="p-2 hover:bg-gray-100 rounded-lg">
+            <i class="fas fa-times text-gray-600"></i>
+          </button>
+        </div>
+      </div>
+      <div id="activity-detail-content" class="px-6 py-5">
+      </div>
+    </div>
   </div>
 
   <script src="/script.js"></script>

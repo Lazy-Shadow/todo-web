@@ -3,7 +3,8 @@ const FilterType = { all: 'all', active: 'active', completed: 'completed' };
 
 let tasks = {};
 let notes = [];
-let currentTab = 'todos';
+let activities = [];
+let currentTab = 'dashboard';
 let filter = FilterType.all;
 let searchQuery = '';
 let editingTask = null;
@@ -71,6 +72,70 @@ function saveNotes() {
   localStorage.setItem('notes', JSON.stringify(notesData));
 }
 
+function loadActivities() {
+  const data = localStorage.getItem('activities');
+  if (data) {
+    try {
+      const parsed = JSON.parse(data);
+      activities = parsed.map(a => {
+        const activity = {
+          ...a,
+          timestamp: new Date(a.timestamp)
+        };
+        if (a.originalData) {
+          activity.originalData = {
+            ...a.originalData,
+            createdAt: new Date(a.originalData.createdAt),
+            updatedAt: new Date(a.originalData.updatedAt),
+            dueDate: a.originalData.dueDate ? new Date(a.originalData.dueDate) : null
+          };
+        }
+        return activity;
+      });
+    } catch (e) {
+      console.error('Error loading activities:', e);
+    }
+  }
+}
+
+function saveActivities() {
+  const activitiesData = activities.map(a => {
+    const data = {
+      ...a,
+      timestamp: a.timestamp.toISOString()
+    };
+    if (a.originalData) {
+      data.originalData = {
+        ...a.originalData,
+        createdAt: a.originalData.createdAt instanceof Date ? a.originalData.createdAt.toISOString() : a.originalData.createdAt,
+        updatedAt: a.originalData.updatedAt instanceof Date ? a.originalData.updatedAt.toISOString() : a.originalData.updatedAt,
+        dueDate: a.originalData.dueDate ? (a.originalData.dueDate instanceof Date ? a.originalData.dueDate.toISOString() : a.originalData.dueDate) : null
+      };
+    }
+    return data;
+  });
+  localStorage.setItem('activities', JSON.stringify(activitiesData));
+}
+
+function logActivity(type, title, itemType, originalData = null) {
+  const activity = {
+    id: generateId(),
+    type,
+    title,
+    itemType,
+    originalData,
+    timestamp: new Date()
+  };
+  activities.unshift(activity);
+  if (activities.length > 100) {
+    activities = activities.slice(0, 100);
+  }
+  saveActivities();
+  if (currentTab === 'activity') {
+    renderActivity();
+  }
+}
+
 function sortNotes() {
   notes.sort((a, b) => {
     if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
@@ -125,6 +190,75 @@ function renderStats() {
   document.getElementById('total-count').textContent = total;
   document.getElementById('active-count').textContent = active;
   document.getElementById('done-count').textContent = completed;
+
+  // Dashboard stats
+  document.getElementById('dash-total').textContent = total;
+  document.getElementById('dash-unfinished').textContent = active;
+  document.getElementById('dash-finished').textContent = completed;
+  document.getElementById('dash-notes').textContent = notes.length;
+}
+
+function renderDashboard() {
+  renderStats();
+
+  // Recent tasks (last 5)
+  const recentTasks = Object.values(tasks)
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, 5);
+
+  const tasksContainer = document.getElementById('dash-recent-tasks');
+  if (recentTasks.length === 0) {
+    tasksContainer.innerHTML = '<p class="text-gray-400 text-center py-4">No tasks yet</p>';
+  } else {
+    tasksContainer.innerHTML = recentTasks.map(task => `
+      <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+        <input type="checkbox" ${task.isCompleted ? 'checked' : ''} 
+          class="w-4 h-4 rounded border-gray-300 text-purple-600 dash-toggle-task" data-id="${task.id}">
+        <div class="flex-1 min-w-0">
+          <p class="font-medium ${task.isCompleted ? 'line-through text-gray-400' : 'text-gray-800'} truncate">${escapeHtml(task.title)}</p>
+        </div>
+        ${renderPriorityBadge(task.priority)}
+      </div>
+    `).join('');
+
+    document.querySelectorAll('.dash-toggle-task').forEach(checkbox => {
+      checkbox.addEventListener('change', (e) => {
+        const id = e.target.dataset.id;
+        toggleTaskComplete(id);
+        renderDashboard();
+      });
+    });
+  }
+
+  // Recent notes (last 5)
+  const recentNotes = notes.slice(0, 5);
+  const notesContainer = document.getElementById('dash-recent-notes');
+  if (recentNotes.length === 0) {
+    notesContainer.innerHTML = '<p class="text-gray-400 text-center py-4">No notes yet</p>';
+  } else {
+    notesContainer.innerHTML = recentNotes.map(note => `
+      <div class="p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition" onclick="switchTab('notes')">
+        <p class="font-medium text-gray-800 truncate">${escapeHtml(note.title)}</p>
+        <p class="text-xs text-gray-400 mt-1">${formatDate(note.updatedAt)}</p>
+      </div>
+    `).join('');
+  }
+}
+
+let currentWeatherData = null;
+let currentLocationName = "Your Location";
+
+function updateDashboardWeather(data, locationName) {
+  currentWeatherData = data;
+  currentLocationName = locationName;
+
+  if (data) {
+    const info = getWeatherInfo(data.weathercode);
+    document.getElementById('weather-temp-dashboard').textContent = `${Math.round(data.temperature)}°C`;
+    document.getElementById('weather-desc-dashboard').textContent = info.desc;
+    document.getElementById('weather-icon-dashboard').className = `fas ${info.icon} text-5xl ${info.color}`;
+  }
+  document.getElementById('weather-location-dashboard').textContent = locationName;
 }
 
 function renderTasks() {
@@ -230,6 +364,140 @@ function renderNotes() {
   `).join('');
 
   attachNoteListeners();
+}
+
+function renderActivity() {
+  const container = document.getElementById('activity-list');
+  
+  if (activities.length === 0) {
+    showEmptyState('No activity yet');
+    return;
+  }
+
+  hideEmptyState();
+  document.getElementById('todos-panel').classList.add('hidden');
+  document.getElementById('notes-panel').classList.add('hidden');
+  document.getElementById('activity-panel').classList.remove('hidden');
+
+  container.innerHTML = activities.map(activity => {
+    const iconInfo = getActivityIcon(activity.type);
+    return `
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center gap-4">
+        <div class="w-10 h-10 rounded-full ${iconInfo.bg} flex items-center justify-center">
+          <i class="fas ${iconInfo.icon} ${iconInfo.color}"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-gray-800">${iconInfo.text} <span class="font-semibold">${escapeHtml(activity.title)}</span></p>
+          <p class="text-xs text-gray-400 mt-1">${formatDate(activity.timestamp)}</p>
+        </div>
+        ${activity.originalData ? `
+          <button class="view-btn p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-purple-600" data-id="${activity.id}" title="View Details">
+            <i class="fas fa-eye"></i>
+          </button>
+        ` : ''}
+        ${activity.type === 'deleted' || activity.type === 'note-deleted' ? `
+          <button class="restore-btn px-3 py-1.5 bg-purple-100 text-purple-600 rounded-lg text-sm hover:bg-purple-200" data-id="${activity.id}" data-item-id="${activity.itemId}">
+            <i class="fas fa-undo mr-1"></i> Restore
+          </button>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+
+  attachActivityListeners();
+}
+
+function getActivityIcon(type) {
+  const icons = {
+    'created': { icon: 'fa-plus', bg: 'bg-green-100', color: 'text-green-600', text: 'Created' },
+    'edited': { icon: 'fa-edit', bg: 'bg-blue-100', color: 'text-blue-600', text: 'Edited' },
+    'deleted': { icon: 'fa-trash', bg: 'bg-red-100', color: 'text-red-600', text: 'Deleted' },
+    'completed': { icon: 'fa-check', bg: 'bg-blue-100', color: 'text-blue-600', text: 'Completed' },
+    'uncompleted': { icon: 'fa-check', bg: 'bg-gray-100', color: 'text-gray-600', text: 'Marked incomplete' },
+    'restored': { icon: 'fa-undo', bg: 'bg-purple-100', color: 'text-purple-600', text: 'Restored' },
+    'note-created': { icon: 'fa-plus', bg: 'bg-green-100', color: 'text-green-600', text: 'Created note' },
+    'note-deleted': { icon: 'fa-trash', bg: 'bg-red-100', color: 'text-red-600', text: 'Deleted note' },
+    'note-updated': { icon: 'fa-edit', bg: 'bg-orange-100', color: 'text-orange-600', text: 'Updated note' }
+  };
+  return icons[type] || { icon: 'fa-circle', bg: 'bg-gray-100', color: 'text-gray-600', text: 'Activity' };
+}
+
+function attachActivityListeners() {
+  document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const activity = activities.find(a => a.id === btn.dataset.id);
+      if (activity && activity.originalData) {
+        showActivityDetails(activity);
+      }
+    });
+  });
+
+  document.querySelectorAll('.restore-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const itemId = btn.dataset.itemId;
+      restoreTask(itemId, btn.dataset.id);
+    });
+  });
+}
+
+function showActivityDetails(activity) {
+  const data = activity.originalData;
+  if (!data) return;
+
+  let details = '';
+  if (activity.itemType === 'task') {
+    details = `
+      <div class="space-y-3">
+        <div><span class="text-gray-500">Title:</span> <span class="font-medium">${escapeHtml(data.title)}</span></div>
+        ${data.description ? `<div><span class="text-gray-500">Description:</span> <span class="font-medium">${escapeHtml(data.description)}</span></div>` : ''}
+        ${data.category ? `<div><span class="text-gray-500">Category:</span> <span class="font-medium">${escapeHtml(data.category)}</span></div>` : ''}
+        <div><span class="text-gray-500">Priority:</span> <span class="font-medium">${['Low', 'Medium', 'High'][data.priority]}</span></div>
+        <div><span class="text-gray-500">Status:</span> <span class="font-medium">${data.isCompleted ? 'Completed' : 'Active'}</span></div>
+        ${data.dueDate ? `<div><span class="text-gray-500">Due Date:</span> <span class="font-medium">${formatDateDisplay(new Date(data.dueDate))}</span></div>` : ''}
+      </div>
+    `;
+  } else if (activity.itemType === 'note') {
+    details = `
+      <div class="space-y-3">
+        <div><span class="text-gray-500">Title:</span> <span class="font-medium">${escapeHtml(data.title)}</span></div>
+        ${data.content ? `<div><span class="text-gray-500">Content:</span></div><div class="bg-gray-50 p-3 rounded-lg text-sm">${escapeHtml(data.content)}</div>` : ''}
+      </div>
+    `;
+  }
+
+  document.getElementById('activity-detail-content').innerHTML = details;
+  document.getElementById('activity-modal').classList.remove('hidden');
+}
+
+function closeActivityModal() {
+  document.getElementById('activity-modal').classList.add('hidden');
+}
+
+function restoreTask(itemId, activityId) {
+  const deletedActivity = activities.find(a => a.id === activityId);
+  if (deletedActivity && deletedActivity.originalData) {
+    const data = { ...deletedActivity.originalData };
+    if (data.createdAt) data.createdAt = new Date(data.createdAt);
+    if (data.updatedAt) data.updatedAt = new Date(data.updatedAt);
+    if (data.dueDate) data.dueDate = new Date(data.dueDate);
+    
+    if (deletedActivity.itemType === 'task') {
+      tasks[data.id] = data;
+      saveTasks();
+      renderTasks();
+      renderStats();
+    } else if (deletedActivity.itemType === 'note') {
+      notes.push(data);
+      sortNotes();
+      saveNotes();
+      renderNotes();
+    }
+    logActivity('restored', deletedActivity.title, deletedActivity.itemType);
+    activities = activities.filter(a => a.id !== activityId);
+    saveActivities();
+    renderActivity();
+    showToast(`"${deletedActivity.title}" restored`);
+  }
 }
 
 function formatDate(date) {
@@ -417,8 +685,10 @@ function attachNoteListeners() {
 function toggleTaskComplete(id) {
   const task = tasks[id];
   if (task) {
+    const wasCompleted = task.isCompleted;
     task.isCompleted = !task.isCompleted;
     saveTasks();
+    logActivity(wasCompleted ? 'uncompleted' : 'completed', task.title, 'task');
     renderTasks();
     renderStats();
   }
@@ -428,12 +698,43 @@ function deleteTask(id) {
   deletedTask = tasks[id];
   delete tasks[id];
   saveTasks();
+  const activity = {
+    id: generateId(),
+    type: 'deleted',
+    title: deletedTask.title,
+    itemType: 'task',
+    itemId: deletedTask.id,
+    originalData: deletedTask,
+    timestamp: new Date()
+  };
+  activities.unshift(activity);
+  if (activities.length > 100) {
+    activities = activities.slice(0, 100);
+  }
+  saveActivities();
   renderTasks();
   renderStats();
   showToast(`"${deletedTask.title}" deleted`, true);
 }
 
 function deleteNote(id) {
+  const deletedNote = notes.find(n => n.id === id);
+  if (deletedNote) {
+    const activity = {
+      id: generateId(),
+      type: 'note-deleted',
+      title: deletedNote.title,
+      itemType: 'note',
+      itemId: deletedNote.id,
+      originalData: deletedNote,
+      timestamp: new Date()
+    };
+    activities.unshift(activity);
+    if (activities.length > 100) {
+      activities = activities.slice(0, 100);
+    }
+    saveActivities();
+  }
   notes = notes.filter(n => n.id !== id);
   saveNotes();
   renderNotes();
@@ -521,12 +822,14 @@ function saveTask() {
   }
 
   if (editingTask) {
+    const originalData = { ...tasks[editingTask.id] };
     editingTask.title = title;
     editingTask.description = descInput.value.trim() || null;
     editingTask.category = catInput.value.trim() || null;
     editingTask.priority = priority;
     editingTask.dueDate = dueDate;
     tasks[editingTask.id] = editingTask;
+    logActivity('edited', editingTask.title, 'task', originalData);
   } else {
     const task = {
       id: generateId(),
@@ -539,6 +842,7 @@ function saveTask() {
       category: catInput.value.trim() || null
     };
     tasks[task.id] = task;
+    logActivity('created', task.title, 'task');
   }
 
   saveTasks();
@@ -590,6 +894,7 @@ function saveNote() {
   const now = new Date();
 
   if (editingNote) {
+    const originalData = { ...notes.find(n => n.id === editingNote.id) };
     editingNote.title = title || 'Untitled';
     editingNote.content = content;
     editingNote.updatedAt = now;
@@ -597,6 +902,7 @@ function saveNote() {
     if (index !== -1) {
       notes[index] = editingNote;
     }
+    logActivity('note-updated', title || 'Untitled', 'note', originalData);
   } else {
     const note = {
       id: generateId(),
@@ -607,6 +913,7 @@ function saveNote() {
       isPinned: false
     };
     notes.push(note);
+    logActivity('note-created', note.title, 'note');
   }
 
   sortNotes();
@@ -654,8 +961,10 @@ function switchTab(tab) {
   });
 
   const titles = {
+    'dashboard': 'Dashboard',
     'todos': 'Todos',
     'notes': 'Notes',
+    'activity': 'Activity',
     'weather': 'Weather',
     'maps': 'Maps'
   };
@@ -664,12 +973,14 @@ function switchTab(tab) {
   // Hide/Show elements based on tab
   document.getElementById('filter-container').classList.toggle('hidden', tab !== 'todos');
   document.getElementById('stats-panel').classList.toggle('hidden', tab !== 'todos');
-  document.getElementById('search-bar-container').classList.toggle('hidden', tab === 'weather' || tab === 'maps');
-  document.getElementById('fab').classList.toggle('hidden', tab === 'weather' || tab === 'maps');
+  document.getElementById('search-bar-container').classList.toggle('hidden', tab === 'weather' || tab === 'maps' || tab === 'dashboard' || tab === 'activity');
+  document.getElementById('fab').classList.toggle('hidden', tab === 'weather' || tab === 'maps' || tab === 'dashboard' || tab === 'activity');
 
   // Hide all panels
+  document.getElementById('dashboard-panel').classList.add('hidden');
   document.getElementById('todos-panel').classList.add('hidden');
   document.getElementById('notes-panel').classList.add('hidden');
+  document.getElementById('activity-panel').classList.add('hidden');
   document.getElementById('weather-panel').classList.add('hidden');
   document.getElementById('maps-panel').classList.add('hidden');
   hideEmptyState();
@@ -678,10 +989,16 @@ function switchTab(tab) {
   document.getElementById('search-input').value = '';
   document.getElementById('clear-search').classList.add('hidden');
 
-  if (tab === 'todos') {
+  if (tab === 'dashboard') {
+    document.getElementById('dashboard-panel').classList.remove('hidden');
+    renderDashboard();
+  } else if (tab === 'todos') {
     renderTasks();
   } else if (tab === 'notes') {
     renderNotes();
+  } else if (tab === 'activity') {
+    document.getElementById('activity-panel').classList.remove('hidden');
+    renderActivity();
   } else if (tab === 'weather') {
     document.getElementById('weather-panel').classList.remove('hidden');
   } else if (tab === 'maps') {
@@ -863,7 +1180,13 @@ function setupEventListeners() {
     if (e.key === 'Escape') {
       closeTaskModal();
       closeNoteModal();
+      closeActivityModal();
     }
+  });
+
+  addListener('close-activity-modal', 'click', closeActivityModal);
+  addListener('activity-modal', 'click', (e) => {
+    if (e.target.id === 'activity-modal') closeActivityModal();
   });
 
   addListener('locate-me-btn', 'click', () => {
@@ -1025,11 +1348,13 @@ function updateMapWithCoords(lat, lon) {
 function init() {
   loadTasks();
   loadNotes();
+  loadActivities();
   setupEventListeners();
   renderTasks();
   renderStats();
   renderNotes();
   initWeatherAndMap();
+  switchTab('dashboard');
 }
 
 async function initWeatherAndMap() {
@@ -1090,6 +1415,9 @@ async function fetchWeather(lat, lon, locationName = "Your Location") {
     if (data.current_weather) {
       const current = data.current_weather;
       const weatherInfo = getWeatherInfo(current.weathercode);
+      
+      // Update dashboard weather
+      updateDashboardWeather(current, locationName);
       
       // Update Current Weather Card
       document.getElementById('weather-temp-large').textContent = `${Math.round(current.temperature)}°C`;
