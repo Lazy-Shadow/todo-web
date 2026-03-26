@@ -85,9 +85,17 @@ function loadActivities() {
         if (a.originalData) {
           activity.originalData = {
             ...a.originalData,
-            createdAt: new Date(a.originalData.createdAt),
-            updatedAt: new Date(a.originalData.updatedAt),
-            dueDate: a.originalData.dueDate ? new Date(a.originalData.dueDate) : null
+            createdAt: a.originalData.createdAt && !isNaN(new Date(a.originalData.createdAt)) ? new Date(a.originalData.createdAt) : null,
+            updatedAt: a.originalData.updatedAt && !isNaN(new Date(a.originalData.updatedAt)) ? new Date(a.originalData.updatedAt) : null,
+            dueDate: a.originalData.dueDate && !isNaN(new Date(a.originalData.dueDate)) ? new Date(a.originalData.dueDate) : null
+          };
+        }
+        if (a.newData) {
+          activity.newData = {
+            ...a.newData,
+            createdAt: a.newData.createdAt && !isNaN(new Date(a.newData.createdAt)) ? new Date(a.newData.createdAt) : null,
+            updatedAt: a.newData.updatedAt && !isNaN(new Date(a.newData.updatedAt)) ? new Date(a.newData.updatedAt) : null,
+            dueDate: a.newData.dueDate && !isNaN(new Date(a.newData.dueDate)) ? new Date(a.newData.dueDate) : null
           };
         }
         return activity;
@@ -107,9 +115,17 @@ function saveActivities() {
     if (a.originalData) {
       data.originalData = {
         ...a.originalData,
-        createdAt: a.originalData.createdAt instanceof Date ? a.originalData.createdAt.toISOString() : a.originalData.createdAt,
-        updatedAt: a.originalData.updatedAt instanceof Date ? a.originalData.updatedAt.toISOString() : a.originalData.updatedAt,
-        dueDate: a.originalData.dueDate ? (a.originalData.dueDate instanceof Date ? a.originalData.dueDate.toISOString() : a.originalData.dueDate) : null
+        createdAt: (a.originalData.createdAt instanceof Date && !isNaN(a.originalData.createdAt)) ? a.originalData.createdAt.toISOString() : null,
+        updatedAt: (a.originalData.updatedAt instanceof Date && !isNaN(a.originalData.updatedAt)) ? a.originalData.updatedAt.toISOString() : null,
+        dueDate: (a.originalData.dueDate instanceof Date && !isNaN(a.originalData.dueDate)) ? a.originalData.dueDate.toISOString() : null
+      };
+    }
+    if (a.newData) {
+      data.newData = {
+        ...a.newData,
+        createdAt: (a.newData.createdAt instanceof Date && !isNaN(a.newData.createdAt)) ? a.newData.createdAt.toISOString() : null,
+        updatedAt: (a.newData.updatedAt instanceof Date && !isNaN(a.newData.updatedAt)) ? a.newData.updatedAt.toISOString() : null,
+        dueDate: (a.newData.dueDate instanceof Date && !isNaN(a.newData.dueDate)) ? a.newData.dueDate.toISOString() : null
       };
     }
     return data;
@@ -117,13 +133,14 @@ function saveActivities() {
   localStorage.setItem('activities', JSON.stringify(activitiesData));
 }
 
-function logActivity(type, title, itemType, originalData = null) {
+function logActivity(type, title, itemType, originalData = null, newData = null) {
   const activity = {
     id: generateId(),
     type,
     title,
     itemType,
     originalData,
+    newData,
     timestamp: new Date()
   };
   activities.unshift(activity);
@@ -441,28 +458,62 @@ function attachActivityListeners() {
 }
 
 function showActivityDetails(activity) {
-  const data = activity.originalData;
-  if (!data) return;
-
   let details = '';
-  if (activity.itemType === 'task') {
-    details = `
-      <div class="space-y-3">
-        <div><span class="text-gray-500">Title:</span> <span class="font-medium">${escapeHtml(data.title)}</span></div>
-        ${data.description ? `<div><span class="text-gray-500">Description:</span> <span class="font-medium">${escapeHtml(data.description)}</span></div>` : ''}
-        ${data.category ? `<div><span class="text-gray-500">Category:</span> <span class="font-medium">${escapeHtml(data.category)}</span></div>` : ''}
-        <div><span class="text-gray-500">Priority:</span> <span class="font-medium">${['Low', 'Medium', 'High'][data.priority]}</span></div>
-        <div><span class="text-gray-500">Status:</span> <span class="font-medium">${data.isCompleted ? 'Completed' : 'Active'}</span></div>
-        ${data.dueDate ? `<div><span class="text-gray-500">Due Date:</span> <span class="font-medium">${formatDateDisplay(new Date(data.dueDate))}</span></div>` : ''}
-      </div>
-    `;
-  } else if (activity.itemType === 'note') {
-    details = `
-      <div class="space-y-3">
-        <div><span class="text-gray-500">Title:</span> <span class="font-medium">${escapeHtml(data.title)}</span></div>
-        ${data.content ? `<div><span class="text-gray-500">Content:</span></div><div class="bg-gray-50 p-3 rounded-lg text-sm">${escapeHtml(data.content)}</div>` : ''}
-      </div>
-    `;
+  
+  if (activity.type === 'edited' || activity.type === 'note-updated') {
+    const oldData = activity.originalData;
+    const newData = activity.newData;
+    
+    if (activity.itemType === 'task') {
+      details = `
+        <div class="space-y-3">
+          <div class="pb-2 border-b border-gray-200">
+            <h4 class="font-semibold text-gray-800">Before</h4>
+          </div>
+          <div class="bg-gray-50 p-3 rounded-lg space-y-2">
+            ${oldData.title !== newData.title ? `<div class="flex items-center gap-2"><span class="text-gray-500 text-sm">Title:</span> <span class="font-medium line-through text-red-500">${escapeHtml(oldData.title)}</span> <i class="fas fa-arrow-right text-gray-400"></i> <span class="font-medium text-green-600">${escapeHtml(newData.title)}</span></div>` : `<div><span class="text-gray-500 text-sm">Title:</span> <span class="font-medium">${escapeHtml(oldData.title)}</span></div>`}
+            ${oldData.description !== newData.description ? `<div class="flex items-center gap-2"><span class="text-gray-500 text-sm">Description:</span> <span class="font-medium text-red-500">${escapeHtml(oldData.description || 'None')}</span> <i class="fas fa-arrow-right text-gray-400"></i> <span class="font-medium text-green-600">${escapeHtml(newData.description || 'None')}</span></div>` : ''}
+            ${oldData.category !== newData.category ? `<div class="flex items-center gap-2"><span class="text-gray-500 text-sm">Category:</span> <span class="font-medium text-red-500">${oldData.category || 'None'}</span> <i class="fas fa-arrow-right text-gray-400"></i> <span class="font-medium text-green-600">${newData.category || 'None'}</span></div>` : ''}
+            ${oldData.priority !== newData.priority ? `<div class="flex items-center gap-2"><span class="text-gray-500 text-sm">Priority:</span> <span class="font-medium text-red-500">${['Low', 'Medium', 'High'][oldData.priority]}</span> <i class="fas fa-arrow-right text-gray-400"></i> <span class="font-medium text-green-600">${['Low', 'Medium', 'High'][newData.priority]}</span></div>` : ''}
+            ${(oldData.isCompleted !== newData.isCompleted) ? `<div class="flex items-center gap-2"><span class="text-gray-500 text-sm">Status:</span> <span class="font-medium text-red-500">${oldData.isCompleted ? 'Completed' : 'Active'}</span> <i class="fas fa-arrow-right text-gray-400"></i> <span class="font-medium text-green-600">${newData.isCompleted ? 'Completed' : 'Active'}</span></div>` : ''}
+            ${(oldData.dueDate ? oldData.dueDate.toISOString() : null) !== (newData.dueDate ? newData.dueDate.toISOString() : null) ? `<div class="flex items-center gap-2"><span class="text-gray-500 text-sm">Due Date:</span> <span class="font-medium text-red-500">${oldData.dueDate ? formatDateDisplay(new Date(oldData.dueDate)) : 'None'}</span> <i class="fas fa-arrow-right text-gray-400"></i> <span class="font-medium text-green-600">${newData.dueDate ? formatDateDisplay(new Date(newData.dueDate)) : 'None'}</span></div>` : ''}
+          </div>
+        </div>
+      `;
+    } else if (activity.itemType === 'note') {
+      details = `
+        <div class="space-y-3">
+          <div class="pb-2 border-b border-gray-200">
+            <h4 class="font-semibold text-gray-800">Before</h4>
+          </div>
+          <div class="bg-gray-50 p-3 rounded-lg space-y-2">
+            ${oldData.title !== newData.title ? `<div class="flex items-center gap-2"><span class="text-gray-500 text-sm">Title:</span> <span class="font-medium line-through text-red-500">${escapeHtml(oldData.title)}</span> <i class="fas fa-arrow-right text-gray-400"></i> <span class="font-medium text-green-600">${escapeHtml(newData.title)}</span></div>` : `<div><span class="text-gray-500 text-sm">Title:</span> <span class="font-medium">${escapeHtml(oldData.title)}</span></div>`}
+            ${oldData.content !== newData.content ? `<div><span class="text-gray-500 text-sm">Content:</span></div><div class="bg-white p-2 rounded border border-gray-200 text-sm">${escapeHtml(oldData.content || 'Empty')}</div><div class="text-center text-gray-400 py-1"><i class="fas fa-arrow-down"></i></div><div class="bg-white p-2 rounded border border-gray-200 text-sm">${escapeHtml(newData.content || 'Empty')}</div>` : ''}
+          </div>
+        </div>
+      `;
+    }
+  } else {
+    const data = activity.originalData;
+    if (activity.itemType === 'task') {
+      details = `
+        <div class="space-y-3">
+          <div><span class="text-gray-500">Title:</span> <span class="font-medium">${escapeHtml(data.title)}</span></div>
+          ${data.description ? `<div><span class="text-gray-500">Description:</span> <span class="font-medium">${escapeHtml(data.description)}</span></div>` : ''}
+          ${data.category ? `<div><span class="text-gray-500">Category:</span> <span class="font-medium">${escapeHtml(data.category)}</span></div>` : ''}
+          <div><span class="text-gray-500">Priority:</span> <span class="font-medium">${['Low', 'Medium', 'High'][data.priority]}</span></div>
+          <div><span class="text-gray-500">Status:</span> <span class="font-medium">${data.isCompleted ? 'Completed' : 'Active'}</span></div>
+          ${data.dueDate ? `<div><span class="text-gray-500">Due Date:</span> <span class="font-medium">${formatDateDisplay(new Date(data.dueDate))}</span></div>` : ''}
+        </div>
+      `;
+    } else if (activity.itemType === 'note') {
+      details = `
+        <div class="space-y-3">
+          <div><span class="text-gray-500">Title:</span> <span class="font-medium">${escapeHtml(data.title)}</span></div>
+          ${data.content ? `<div><span class="text-gray-500">Content:</span></div><div class="bg-gray-50 p-3 rounded-lg text-sm">${escapeHtml(data.content)}</div>` : ''}
+        </div>
+      `;
+    }
   }
 
   document.getElementById('activity-detail-content').innerHTML = details;
@@ -698,13 +749,17 @@ function deleteTask(id) {
   deletedTask = tasks[id];
   delete tasks[id];
   saveTasks();
+  const taskData = { ...deletedTask };
+  if (taskData.createdAt) taskData.createdAt = new Date(taskData.createdAt);
+  if (taskData.dueDate) taskData.dueDate = new Date(taskData.dueDate);
+  
   const activity = {
     id: generateId(),
     type: 'deleted',
     title: deletedTask.title,
     itemType: 'task',
     itemId: deletedTask.id,
-    originalData: deletedTask,
+    originalData: taskData,
     timestamp: new Date()
   };
   activities.unshift(activity);
@@ -720,13 +775,17 @@ function deleteTask(id) {
 function deleteNote(id) {
   const deletedNote = notes.find(n => n.id === id);
   if (deletedNote) {
+    const noteData = { ...deletedNote };
+    if (noteData.createdAt) noteData.createdAt = new Date(noteData.createdAt);
+    if (noteData.updatedAt) noteData.updatedAt = new Date(noteData.updatedAt);
+    
     const activity = {
       id: generateId(),
       type: 'note-deleted',
       title: deletedNote.title,
       itemType: 'note',
       itemId: deletedNote.id,
-      originalData: deletedNote,
+      originalData: noteData,
       timestamp: new Date()
     };
     activities.unshift(activity);
@@ -823,13 +882,16 @@ function saveTask() {
 
   if (editingTask) {
     const originalData = { ...tasks[editingTask.id] };
+    if (originalData.createdAt) originalData.createdAt = new Date(originalData.createdAt);
+    if (originalData.dueDate) originalData.dueDate = new Date(originalData.dueDate);
+    
     editingTask.title = title;
     editingTask.description = descInput.value.trim() || null;
     editingTask.category = catInput.value.trim() || null;
     editingTask.priority = priority;
     editingTask.dueDate = dueDate;
     tasks[editingTask.id] = editingTask;
-    logActivity('edited', editingTask.title, 'task', originalData);
+    logActivity('edited', editingTask.title, 'task', originalData, editingTask);
   } else {
     const task = {
       id: generateId(),
@@ -895,6 +957,9 @@ function saveNote() {
 
   if (editingNote) {
     const originalData = { ...notes.find(n => n.id === editingNote.id) };
+    if (originalData.createdAt) originalData.createdAt = new Date(originalData.createdAt);
+    if (originalData.updatedAt) originalData.updatedAt = new Date(originalData.updatedAt);
+    
     editingNote.title = title || 'Untitled';
     editingNote.content = content;
     editingNote.updatedAt = now;
@@ -902,7 +967,7 @@ function saveNote() {
     if (index !== -1) {
       notes[index] = editingNote;
     }
-    logActivity('note-updated', title || 'Untitled', 'note', originalData);
+    logActivity('note-updated', title || 'Untitled', 'note', originalData, editingNote);
   } else {
     const note = {
       id: generateId(),
