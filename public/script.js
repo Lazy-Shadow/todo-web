@@ -1473,7 +1473,7 @@ async function initWeatherAndMap() {
 async function fetchWeather(lat, lon, locationName = "Your Location") {
   try {
     // Request current weather + daily forecast + additional metrics
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=relativehumidity_2m,precipitation_probability,uv_index&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relativehumidity_2m,precipitation_probability,weathercode,uv_index&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`;
     const response = await fetch(url);
     const data = await response.json();
     
@@ -1504,6 +1504,9 @@ async function fetchWeather(lat, lon, locationName = "Your Location") {
       document.getElementById('weather-uv').textContent = data.hourly.uv_index[hourIndex].toFixed(1);
       document.getElementById('weather-precip').textContent = `${data.hourly.precipitation_probability[hourIndex]}%`;
 
+      // Render Hourly Forecast (next 24 hours)
+      renderHourlyForecast(data.hourly, hourIndex);
+
       // Render 7-Day Forecast
       renderForecast(data.daily);
     }
@@ -1511,6 +1514,37 @@ async function fetchWeather(lat, lon, locationName = "Your Location") {
     console.error("Weather fetch error:", error);
     document.getElementById('weather-desc-large').textContent = "Failed to load weather";
   }
+}
+
+function renderHourlyForecast(hourly, currentHourIndex) {
+  const container = document.getElementById('hourly-forecast-container');
+  
+  // Get next 24 hours starting from current hour
+  const next24Hours = [];
+  for (let i = 0; i < 24; i++) {
+    const index = currentHourIndex + i;
+    if (index < hourly.time.length) {
+      next24Hours.push({
+        time: hourly.time[index],
+        temp: Math.round(hourly.temperature_2m[index]),
+        code: hourly.weathercode[index]
+      });
+    }
+  }
+
+  container.innerHTML = next24Hours.map((hour, i) => {
+    const date = new Date(hour.time);
+    const timeString = i === 0 ? 'Now' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const info = getWeatherInfo(hour.code);
+
+    return `
+      <div class="bg-white p-4 rounded-2xl border border-gray-100 flex flex-col items-center gap-3 shadow-sm hover:shadow-md transition min-w-[100px] flex-shrink-0">
+        <p class="text-sm font-bold text-gray-500">${timeString}</p>
+        <i class="fas ${info.icon} text-2xl ${info.color}"></i>
+        <p class="text-lg font-bold text-gray-800">${hour.temp}°</p>
+      </div>
+    `;
+  }).join('');
 }
 
 function renderForecast(daily) {
