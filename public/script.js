@@ -294,22 +294,22 @@ function renderTasks() {
   document.getElementById('notes-panel').classList.add('hidden');
 
   container.innerHTML = filteredTasks.map(task => `
-    <div class="task-card bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-start gap-4 hover:shadow-md transition group">
+    <div class="task-card bg-white rounded-xl shadow-sm border border-gray-100 p-3 md:p-4 flex items-start gap-3 md:gap-4 hover:shadow-md transition group">
       <input type="checkbox" ${task.isCompleted ? 'checked' : ''} 
         class="mt-1 w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer toggle-task" data-id="${task.id}">
       <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
           <h3 class="font-semibold ${task.isCompleted ? 'line-through text-gray-400' : 'text-gray-800'}">${escapeHtml(task.title)}</h3>
           ${renderPriorityBadge(task.priority)}
         </div>
         ${task.description ? `<p class="text-sm text-gray-500 mt-1">${escapeHtml(task.description)}</p>` : ''}
-        <div class="flex items-center gap-3 mt-2 text-xs text-gray-400">
+        <div class="flex items-center gap-2 md:gap-3 mt-2 text-xs text-gray-400 flex-wrap">
           ${task.dueDate ? renderDueDateBadge(task.dueDate) : ''}
           ${task.category ? renderCategoryBadge(task.category) : ''}
           <span class="text-xs">${formatDate(task.createdAt)}</span>
         </div>
       </div>
-      <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+      <div class="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 transition">
         <button class="edit-task p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-purple-600" data-id="${task.id}" title="Edit">
           <i class="fas fa-edit"></i>
         </button>
